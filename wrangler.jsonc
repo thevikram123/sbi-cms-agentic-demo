@@ -11,7 +11,7 @@
 		"head_sampling_rate": 1
 	},
 	"vars": {
-		"ALLOWED_ORIGINS": "http://localhost:3000,http://127.0.0.1:3000",
+		"ALLOWED_ORIGINS": "https://thevikram123.github.io,http://localhost:3000,http://127.0.0.1:3000",
 		"GEMINI_MODEL": "gemini-3.1-flash-lite",
 		"MISTRAL_MODEL": "mistral-small-latest",
 		"SUPABASE_URL": "https://dxcelfokjazxkmmfoxgq.supabase.co"
@@ -32,6 +32,11 @@
 			"binding": "MISTRAL_API_KEY",
 			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
 			"secret_name": "MISTRAL_API_KEY"
+		},
+		{
+			"binding": "SUPABASE_SECRET_KEY",
+			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
+			"secret_name": "SUPABASE_SECRET_KEY"
 		}
 	]
 }

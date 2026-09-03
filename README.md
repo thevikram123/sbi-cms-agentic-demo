@@ -50,6 +50,7 @@ npm run worker:check
 ## Live infrastructure
 
 - Cloudflare Worker: `https://sbi-cms-agentic-gateway.thevikram123.workers.dev`
+- GitHub Pages: `https://thevikram123.github.io/sbi-cms-agentic-demo/`
 - Supabase project ref: `dxcelfokjazxkmmfoxgq` (`ap-south-1`)
 - Migration source: `supabase/migrations/`
 - Seed totals: 17 circles, 250 branches, 1,200 cameras, 800 devices, 30,000 alerts, 7,500 incidents, 25,000 lifecycle events and 25,000 immutable audit events.
@@ -70,11 +71,7 @@ Mutation requests require `X-Confirmation-Token`. The evidence endpoint fails cl
 
 ## Deployment handoff
 
-1. Authenticate GitHub CLI and create a new repository; do not push to the reference repository.
-2. Add repository variable `VITE_WORKER_URL` with the Worker URL and enable GitHub Pages from Actions.
-3. Add the final GitHub Pages origin to `ALLOWED_ORIGINS` in `wrangler.jsonc`, then redeploy the Worker.
-4. Bind `SUPABASE_SECRET_KEY` directly in Cloudflare Secrets Store and connect the Worker data adapter. Never place the secret in frontend variables or chat.
-5. Create the private evidence bucket, upload the primary clip, and verify authenticated short-lived playback.
+The site is published through GitHub Actions, and its origin is allowlisted by the Worker. `SUPABASE_SECRET_KEY` is bound through Cloudflare Secrets Store and never exposed to the browser. Private evidence upload and authenticated playback remain an explicit operational provisioning step.
 
 ## Presentation sequence
 
