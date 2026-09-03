@@ -20,7 +20,7 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-lockup"><div className="sbi-mark" aria-label="SBI"><span /></div><div><strong>SBI</strong><small>Centralised Monitoring System</small></div></div>
+        <div className="brand-lockup"><div className="brand-logo-crop"><img src={`${import.meta.env.BASE_URL}images/sbi-official-lockup.png`} alt="State Bank of India" /></div><div><small>Centralised Monitoring System</small></div></div>
         <div className="top-signals" aria-label="System status">
           <span><Radio size={14} /> 1,198 / 1,200 cameras online</span><span className="alert-signal"><BellRing size={14} /> {critical} critical</span><span><Activity size={14} /> 99.84% availability</span>
         </div>
@@ -33,7 +33,7 @@ export default function Layout() {
         {!compact && <div className="shift-card"><span>SHIFT 02</span><strong>{live} active incidents</strong><small>14:00–22:00 IST</small></div>}
       </aside>
       <main className={compact ? 'compact-main' : ''}><Outlet /></main>
-      <footer className="statusbar"><span><i /> All integrations nominal</span><span>Gemini vision • Mistral operator • Supabase realtime</span><span>03 SEP 2026 • 14:39 IST</span></footer>
+      <footer className="statusbar"><span><i /> All integrations nominal</span><span>Gemini vision • Mistral tools • Sarvam voice • Supabase realtime</span><span>04 SEP 2026 • LIVE DEMO</span></footer>
     </div>
   );
 }

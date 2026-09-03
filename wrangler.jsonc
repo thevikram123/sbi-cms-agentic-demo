@@ -34,6 +34,11 @@
 			"secret_name": "MISTRAL_API_KEY"
 		},
 		{
+			"binding": "SARVAM_API_KEY",
+			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
+			"secret_name": "SARVAM_API_KEY"
+		},
+		{
 			"binding": "SUPABASE_SECRET_KEY",
 			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
 			"secret_name": "SUPABASE_SECRET_KEY"
