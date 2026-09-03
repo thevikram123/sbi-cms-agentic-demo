@@ -4,5 +4,8 @@ dist/
 coverage/
 .DS_Store
 *.log
+.cloudflare-correct-profile/
+graphify-out/
+tmp-posters/
 .env*
 !.env.example

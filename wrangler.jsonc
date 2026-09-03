@@ -1,0 +1,37 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "sbi-cms-agentic-gateway",
+	"main": "worker/index.ts",
+	"compatibility_date": "2026-09-03",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	"vars": {
+		"ALLOWED_ORIGINS": "http://localhost:3000,http://127.0.0.1:3000",
+		"GEMINI_MODEL": "gemini-3.1-flash-lite",
+		"MISTRAL_MODEL": "mistral-small-latest",
+		"SUPABASE_URL": "https://dxcelfokjazxkmmfoxgq.supabase.co"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT",
+			"id": "5f57ff8d98a948a980a1e8a4638c01c9"
+		}
+	],
+	"secrets_store_secrets": [
+		{
+			"binding": "GEMINI_API_KEY",
+			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
+			"secret_name": "GEMINI_API_KEY"
+		},
+		{
+			"binding": "MISTRAL_API_KEY",
+			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
+			"secret_name": "MISTRAL_API_KEY"
+		}
+	]
+}

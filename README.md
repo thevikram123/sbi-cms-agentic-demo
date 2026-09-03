@@ -1,50 +1,81 @@
-# Integrated Command and Control Centre (ICCC) Interface
+# SBI CMS Agentic Operator Prototype
 
-This project is a React-based web application acting as an Integrated Command and Control Centre (ICCC). It is designed to simulate massive CCTV and network monitoring, featuring AI analytics, Facial Recognition System (FRS) search capabilities, system alerts, and an AI Copilot interface.
+Presentation-ready Centralised Monitoring System prototype for SBI's technical evaluation. It combines evidence-linked incident workflows, cached Gemini video understanding, a grounded Mistral operator assistant, an SBI-branded command interface, and a richly seeded Supabase operational model.
 
-## File Structure
+> **DEMO / ON-PREM SIMULATION** — Cloudflare, Supabase, Gemini and Mistral are presentation services. Production maps to on-prem PostgreSQL/pgvector, private object storage, an API/AI gateway and approved inference endpoints.
 
-Below is an overview of the key directories and files in this project:
+## Demo experience
+
+The six routes are Command Dashboard, Live Alerts, Incident Workspace, Cameras & Digital Twin, Agentic Operator, and Audit & Compliance. The two scripted golden paths cover U.12 frisking compliance and U.17 threat/panic escalation.
+
+The UI uses SBI blue (`#0CB1F2`), white and black. Seeded operational content is labelled **Representative pilot data**. AI results distinguish observed evidence from inferences and cite incident, timestamp and SOP references.
+
+## Architecture
 
 ```text
-/
-├── public/                 # Static assets served at the root path of the application
-│   └── images/             # Local image assets (e.g., CCTV feeds: pov 1.jpeg to pov 6.jpeg)
-├── src/                    # Main source code directory
-│   ├── components/         # Reusable structural UI components
-│   │   └── Layout.tsx      # Main application wrapper handling the sidebar navigation
-│   ├── context/            # React Contexts for global state management
-│   │   └── AuditLogContext.tsx # Provides and manages the system-wide audit logs
-│   ├── pages/              # React components representing individual routes/screens
-│   │   ├── Anomalies.tsx   # Anomaly detection logs and alerts view
-│   │   ├── AreaDiagnostics.tsx # Deep-dive into specific area metrics
-│   │   ├── Alerts.tsx      # Central hub for all system-wide alerts
-│   │   ├── CctvFeeds.tsx   # Simulates live CCTV camera feeds monitoring
-│   │   ├── Copilot.tsx     # AI assistant interface for complex querying
-│   │   ├── Dashboard.tsx   # Main landing dashboard providing an overview of metrics
-│   │   ├── FrsSearch.tsx   # Interface for the Facial Recognition System (with active heatmaps)
-│   │   ├── GisMap.tsx      # Main geographical map view
-│   │   ├── Infrastructure.tsx # Monitoring statuses for hardware/nodes
-│   │   ├── Login.tsx       # Initial authentication screen (admin123/eypwd123)
-│   │   ├── SurveyTracking.tsx # Dashboard tracking site survey velocity, districts, and mapping
-│   │   └── Topology.tsx    # Node/network topological visualization
-│   ├── App.tsx             # Root component that manages authentication state and react-router setup
-│   ├── main.tsx            # Main React mounting point that renders <App /> into the DOM
-│   └── index.css           # Global stylesheet containing the Tailwind CSS directives
-├── .env.example            # Template detailing the required environment variables
-├── .gitignore              # Files/directories that Git should not track
-├── index.html              # The foundational HTML file Vite serves
-├── metadata.json           # AI Studio app metadata (name, description, permissions)
-├── package.json            # Manifest file for npm standard dependencies and scripts
-├── tsconfig.json           # TypeScript configuration for the project
-└── vite.config.ts          # Build tool instructions for Vite dev server and bundler
+React/Vite UI
+    │ authenticated requests
+Cloudflare Worker API gateway
+    ├── Gemini 3.1 Flash-Lite video analysis → SHA-256 keyed KV cache
+    ├── Mistral operator answers → evidence and SOP citations
+    └── Supabase service binding (deployment handoff)
+            ├── Auth + RLS
+            ├── PostgreSQL + pgvector(1024)
+            ├── Realtime incident updates
+            └── private evidence Storage + signed URLs
 ```
 
-## Core Technologies
-- React 18+
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router DOM
-- Recharts (for Dashboard data visualization)
-- React Leaflet (for Interactive Maps & Heatmaps)
+The Worker enforces an internal limit of 12 requests/minute and 200K estimated input tokens/minute with one `Retry-After`-aware retry. The primary CCTV result is pre-warmed; cache hits do not call Gemini and retain the original analysis timestamp.
+
+## Local run
+
+Requirements: Node.js 22 and npm.
+
+```powershell
+npm ci
+Copy-Item .env.example .env.development.local
+npm run dev
+```
+
+Set `PRIMARY_VIDEO_PATH` only in the ignored local environment file. The private primary CCTV clip is served by development middleware and is never copied to `public` or committed. Set `VITE_WORKER_URL` to the deployed gateway.
+
+Quality gates:
+
+```powershell
+npm run lint
+npm run build
+npm run worker:check
+```
+
+## Live infrastructure
+
+- Cloudflare Worker: `https://sbi-cms-agentic-gateway.thevikram123.workers.dev`
+- Supabase project ref: `dxcelfokjazxkmmfoxgq` (`ap-south-1`)
+- Migration source: `supabase/migrations/`
+- Seed totals: 17 circles, 250 branches, 1,200 cameras, 800 devices, 30,000 alerts, 7,500 incidents, 25,000 lifecycle events and 25,000 immutable audit events.
+
+API contracts:
+
+```text
+POST /api/video/analyze
+GET  /api/dashboard
+GET  /api/incidents
+GET  /api/incidents/:id
+POST /api/incidents/:id/actions
+POST /api/agent/query
+GET  /api/evidence/:id/url
+```
+
+Mutation requests require `X-Confirmation-Token`. The evidence endpoint fails closed until a Supabase server secret is bound to the Worker; it never falls back to a public URL.
+
+## Deployment handoff
+
+1. Authenticate GitHub CLI and create a new repository; do not push to the reference repository.
+2. Add repository variable `VITE_WORKER_URL` with the Worker URL and enable GitHub Pages from Actions.
+3. Add the final GitHub Pages origin to `ALLOWED_ORIGINS` in `wrangler.jsonc`, then redeploy the Worker.
+4. Bind `SUPABASE_SECRET_KEY` directly in Cloudflare Secrets Store and connect the Worker data adapter. Never place the secret in frontend variables or chat.
+5. Create the private evidence bucket, upload the primary clip, and verify authenticated short-lived playback.
+
+## Presentation sequence
+
+Open `SBI-INC-00421`, play the private evidence, show the cached Gemini analysis and original timestamp, ask the operator agent why it was escalated, retrieve the applicable SOP, confirm a lifecycle action, and finish on the immutable audit ledger and on-prem architecture mapping.
