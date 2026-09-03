@@ -7,5 +7,6 @@ coverage/
 .cloudflare-correct-profile/
 graphify-out/
 tmp-posters/
+.visual-qa/
 .env*
 !.env.example
