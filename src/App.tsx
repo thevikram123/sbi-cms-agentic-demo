@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { IncidentProvider } from './context/IncidentContext';
 
@@ -13,7 +13,7 @@ const AuditCompliance = lazy(() => import('./pages/AuditCompliance'));
 export default function App() {
   return (
     <IncidentProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Suspense fallback={<div className="route-loader" role="status">Loading secure workspace…</div>}>
         <Routes>
           <Route element={<Layout />}>
@@ -27,7 +27,7 @@ export default function App() {
           </Route>
         </Routes>
         </Suspense>
-      </BrowserRouter>
+      </HashRouter>
     </IncidentProvider>
   );
 }
