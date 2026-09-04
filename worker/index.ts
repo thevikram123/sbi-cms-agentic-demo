@@ -253,6 +253,7 @@ async function supabaseRest(env: Env, path: string) {
   const key = await getSecret(env.SUPABASE_SECRET_KEY);
   const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(6_000),
   });
   if (!response.ok) throw new Error(`supabase_${response.status}`);
   return response.json<unknown>();
@@ -264,29 +265,41 @@ async function callMistral(
   messages: MistralMessage[],
   withTools = true,
 ) {
-  const response = await fetch(`${MISTRAL_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: env.MISTRAL_MODEL,
-      messages,
-      temperature: 0.12,
-      max_tokens: 900,
-      ...(withTools
-        ? { tools: TOOLS, tool_choice: "auto", parallel_tool_calls: false }
-        : {}),
-    }),
-  });
-  if (!response.ok) throw new Error(`mistral_${response.status}`);
-  const data = await response.json<{
-    choices?: Array<{ message?: MistralMessage }>;
-  }>();
-  const message = data.choices?.[0]?.message;
-  if (!message) throw new Error("mistral_malformed");
-  return message;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetch(`${MISTRAL_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: env.MISTRAL_MODEL,
+        messages,
+        temperature: 0.12,
+        max_tokens: 900,
+        ...(withTools
+          ? { tools: TOOLS, tool_choice: "auto", parallel_tool_calls: false }
+          : {}),
+      }),
+      signal: AbortSignal.timeout(18_000),
+    });
+    if (response.ok) {
+      const data = await response.json<{
+        choices?: Array<{ message?: MistralMessage }>;
+      }>();
+      const message = data.choices?.[0]?.message;
+      if (!message) throw new Error("mistral_malformed");
+      return message;
+    }
+    if (response.status !== 429 || attempt > 0)
+      throw new Error(`mistral_${response.status}`);
+    const retrySeconds = Math.min(
+      6,
+      Math.max(1, Number(response.headers.get("retry-after")) || 2),
+    );
+    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000));
+  }
+  throw new Error("mistral_429");
 }
 
 async function executeTool(
@@ -489,14 +502,14 @@ async function agentQuery(request: Request, env: Env) {
   ];
   const trace: ToolTrace[] = [];
   try {
-    for (let round = 0; round < 3; round += 1) {
+    for (let round = 0; round < 2; round += 1) {
       const assistant = await callMistral(env, key, messages, true);
       const calls = assistant.tool_calls || [];
       if (!calls.length)
         return json(request, env, {
           answer: assistant.content || "No grounded answer returned.",
           toolTrace: trace,
-          model: env.MISTRAL_MODEL,
+          model: "operator-llm",
         });
       messages.push({ role: "assistant", content: null, tool_calls: calls });
       for (const call of calls.slice(0, 3)) {
@@ -580,15 +593,23 @@ async function agentQuery(request: Request, env: Env) {
     return json(request, env, {
       answer: final.content || "No grounded answer returned.",
       toolTrace: trace,
-      model: env.MISTRAL_MODEL,
+      model: "operator-llm",
     });
   } catch (error) {
+    const failure = error instanceof Error ? error.message : "unknown";
     console.error(
       JSON.stringify({
         event: "agent_failed",
-        error: error instanceof Error ? error.message : "unknown",
+        error: failure,
       }),
     );
+    if (failure === "mistral_429")
+      return json(
+        request,
+        env,
+        { error: "operator_model_rate_limited", retryAfter: 30 },
+        429,
+      );
     return json(request, env, { error: "agent_upstream_unavailable" }, 502);
   }
 }

@@ -21,7 +21,7 @@ export default function Dashboard() {
       <div className="panel-head"><h2>SBI branch camera wall</h2><span>9 LIVE FEEDS • SYNTHETIC DEMO FOOTAGE</span></div>
       <div className="camera-wall">
         {scenarios.map((camera, index) => <article className="camera-tile" key={camera.id}>
-          <SecureCameraVideo assetId={camera.id} autoPlay muted loop playsInline preload={index < 6 ? 'auto' : 'metadata'} />
+          <SecureCameraVideo assetId={camera.id} priority={index < 3} autoPlay muted loop playsInline preload="metadata" />
           <div className="camera-tile-top"><span className={`camera-state ${camera.state}`}>{camera.state === 'alert' ? 'Alert' : camera.state === 'watch' ? 'Watch' : 'Live'}</span><span>{camera.id}</span></div>
           <div className="camera-tile-copy"><strong>{camera.name}</strong><small>{camera.source} • Mumbai LHO</small></div>
           <Link className="camera-analyze" to="/incidents/SBI-INC-00421">Open analysis →</Link>

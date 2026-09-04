@@ -41,6 +41,18 @@ const next: Record<IncidentStatus, IncidentStatus | undefined> = {
   closed: undefined,
 };
 
+const incidentEvidence: Record<
+  string,
+  { assetId: string; durationSeconds: number }
+> = {
+  "SBI-INC-00421": { assetId: "PRIMARY_CCTV_001", durationSeconds: 11 },
+  "SBI-INC-00418": { assetId: "CAM-MUM-08", durationSeconds: 10 },
+  "SBI-INC-00412": { assetId: "CAM-MUM-03", durationSeconds: 10 },
+  "SBI-INC-00398": { assetId: "CAM-MUM-05", durationSeconds: 10 },
+  "SBI-INC-00391": { assetId: "CAM-MUM-06", durationSeconds: 10 },
+  "SBI-INC-00376": { assetId: "CAM-MUM-04", durationSeconds: 10 },
+};
+
 function toBase64(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -68,6 +80,7 @@ export default function IncidentWorkspace() {
   const [videoState, setVideoState] = useState<"loading" | "ready" | "error">(
     import.meta.env.DEV ? "ready" : "loading",
   );
+  const evidence = incidentEvidence[selected.id];
 
   const advance = () => {
     const state = next[selected.status];
@@ -84,15 +97,26 @@ export default function IncidentWorkspace() {
   useEffect(() => {
     setAnalysis(null);
     setAnalysisState("ready");
-    if (import.meta.env.DEV || selected.id !== "SBI-INC-00421") return;
+    setVideoUrl("");
+    setVideoState("loading");
+    if (!evidence) {
+      setVideoState("error");
+      return;
+    }
+    if (import.meta.env.DEV && evidence.assetId === "PRIMARY_CCTV_001") {
+      setVideoUrl("/__evidence/primary.mp4");
+      setVideoState("ready");
+      return;
+    }
     const worker = import.meta.env.VITE_WORKER_URL as string | undefined;
     if (!worker) {
       setVideoState("error");
       return;
     }
     let active = true;
-    setVideoState("loading");
-    fetch(`${worker}/api/evidence/PRIMARY_CCTV_001/url`)
+    fetch(`${worker}/api/evidence/${encodeURIComponent(evidence.assetId)}/url`, {
+      signal: AbortSignal.timeout(10_000),
+    })
       .then(async (response) => {
         if (!response.ok) throw new Error("Signed evidence unavailable");
         return response.json() as Promise<{ url: string }>;
@@ -109,10 +133,10 @@ export default function IncidentWorkspace() {
     return () => {
       active = false;
     };
-  }, [selected.id]);
+  }, [evidence, selected.id]);
 
   const analyze = async () => {
-    if (!videoUrl || analysisState === "analyzing") return;
+    if (!videoUrl || !evidence || analysisState === "analyzing") return;
     setAnalysisState("analyzing");
     try {
       const mediaResponse = await fetch(videoUrl);
@@ -131,10 +155,10 @@ export default function IncidentWorkspace() {
         durationSeconds: number;
         videoBase64?: string;
       } = {
-        assetId: "PRIMARY_CCTV_001",
+        assetId: evidence.assetId,
         mimeType: "video/mp4",
         sha256: sha,
-        durationSeconds: 11,
+        durationSeconds: evidence.durationSeconds,
       };
       let response = await fetch(`${worker}/api/video/analyze`, {
         method: "POST",
@@ -168,7 +192,7 @@ export default function IncidentWorkspace() {
   const result = analysis?.result;
   const structuredOutput = result
     ? {
-        asset_id: "PRIMARY_CCTV_001",
+        asset_id: evidence.assetId,
         people_count: result.people_count ?? result.people?.length ?? 0,
         what_happened: result.what_happened ?? result.summary,
         people: result.people ?? [],
@@ -253,7 +277,7 @@ export default function IncidentWorkspace() {
               </button>
             </div>
             <div className="video-shell">
-              {videoUrl && selected.id === "SBI-INC-00421" ? (
+              {videoUrl ? (
                 <video
                   controls
                   preload="metadata"
@@ -268,7 +292,7 @@ export default function IncidentWorkspace() {
                       ? "Requesting signed evidence…"
                       : videoState === "error"
                         ? "Evidence playback unavailable"
-                        : "Select the primary incident to review video"}
+                        : "Select an incident with linked evidence"}
                     <br />
                     <small>
                       {videoState === "error"
@@ -283,13 +307,14 @@ export default function IncidentWorkspace() {
               </div>
               <div className="ai-stamp">
                 {analysisState === "live"
-                  ? "FRESH ANALYSIS"
+                  ? `FRESH ANALYSIS • ${result?.confidence}% CONFIDENCE`
                   : analysisState === "cached"
-                    ? "CACHE HIT"
-                    : analysisState === "degraded"
-                      ? "DEGRADED • RETRY"
-                      : "VIDEO MODEL READY"}{" "}
-                • {result?.confidence || selected.confidence}% CONFIDENCE
+                    ? `CACHE HIT • ${result?.confidence}% CONFIDENCE`
+                    : analysisState === "analyzing"
+                      ? "ANALYSIS IN PROGRESS"
+                      : analysisState === "degraded"
+                        ? "ANALYSIS FAILED • RETRY"
+                        : "NOT ANALYZED • RUN VIDEO MODEL"}
               </div>
             </div>
             <div className="detail-grid">
@@ -311,8 +336,10 @@ export default function IncidentWorkspace() {
           </div>
           <div className="panel">
             <div className="panel-head">
-              <h2>AI pre-classification</h2>
-              <span>HUMAN VALIDATION REQUIRED</span>
+              <h2>
+                {result ? "Video model pre-classification" : "Incident trigger context"}
+              </h2>
+              <span>{result ? "HUMAN VALIDATION REQUIRED" : "RULE / SENSOR CORRELATION"}</span>
             </div>
             <div className="panel-body">
               <div className="callout">
@@ -320,6 +347,12 @@ export default function IncidentWorkspace() {
                 <p>
                   {result?.what_happened || result?.summary || selected.summary}
                 </p>
+                {!result && (
+                  <p>
+                    This is the correlated alert context, not a video-model
+                    result. Run the video model to validate the footage.
+                  </p>
+                )}
               </div>
               <div
                 style={{

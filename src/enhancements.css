@@ -1,8 +1,10 @@
 .camera-wall-panel { margin-bottom: 12px; }
 .camera-wall { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: #1d282d; }
 .camera-tile { position: relative; aspect-ratio: 16 / 9; background: #080b0d; overflow: hidden; }
+.secure-video-host { width: 100%; height: 100%; min-height: 0; background: #080b0d; }
 .camera-tile video { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .9; transition: transform .35s ease, opacity .35s ease; }
 .secure-video-state { width: 100%; height: 100%; min-height: 100px; display: grid; place-items: center; background: #080b0d; color: #8fa0a7; font: 700 8px 'JetBrains Mono'; }
+.secure-video-retry { border: 0; cursor: pointer; }
 .camera-tile:hover video { transform: scale(1.025); opacity: 1; }
 .camera-tile-top { position: absolute; left: 8px; right: 8px; top: 8px; display: flex; justify-content: space-between; align-items: center; color: #fff; font: 700 8px 'JetBrains Mono'; text-transform: uppercase; text-shadow: 0 1px 5px #000; }
 .camera-state { background: #16824be8; padding: 4px 6px; }
@@ -26,11 +28,18 @@
 .twin-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #111; }
 .twin-pane { position: relative; min-width: 0; }
 .twin-pane > span { position: absolute; z-index: 2; left: 7px; top: 7px; padding: 4px 6px; color: #fff; background: #000c; font: 700 7px 'JetBrains Mono'; text-transform: uppercase; }
-.twin-pane video, .twin-zone { width: 100%; aspect-ratio: 16 / 9; }
+.twin-pane .secure-video-host, .twin-pane video, .twin-zone { width: 100%; aspect-ratio: 16 / 9; }
 .twin-pane video { object-fit: cover; }
 .twin-zone { position: relative; overflow: hidden; background: #0c151a; }
-.twin-zone img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.8) contrast(1.05); }
-.twin-zone i { position: absolute; width: 13px; height: 13px; transform: translate(-50%, -50%); border: 2px solid #fff; border-radius: 50%; background: var(--sbi); box-shadow: 0 0 0 5px #0cb1f244, 0 0 14px #0cb1f2; animation: twin-pulse 1.6s ease-in-out infinite; }
+.twin-zone img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.12) contrast(1.05); }
+.twin-detection { position: absolute; border: 1.5px solid #0CB1F2; box-shadow: 0 0 12px #0cb1f255, inset 0 0 12px #0cb1f21c; pointer-events: none; }
+.twin-detection::before,.twin-detection::after { content: ""; position: absolute; width: 8px; height: 8px; border-color: #fff; }
+.twin-detection::before { left: -2px; top: -2px; border-left: 2px solid; border-top: 2px solid; }
+.twin-detection::after { right: -2px; bottom: -2px; border-right: 2px solid; border-bottom: 2px solid; }
+.twin-detection.alert { border-color: #ff4d5a; box-shadow: 0 0 12px #ff4d5a66, inset 0 0 12px #ff4d5a1c; }
+.twin-detection b { position: absolute; left: -1px; top: -17px; white-space: nowrap; padding: 3px 5px; background: #007daee8; color: #fff; font: 700 6px 'JetBrains Mono'; letter-spacing: .03em; }
+.twin-detection.alert b { background: #b51f2ce8; }
+.twin-sim-chip { position: absolute; right: 6px; bottom: 6px; padding: 3px 5px; color: #bfefff; background: #03131dcc; border: 1px solid #0CB1F2; font: 700 6px 'JetBrains Mono'; letter-spacing: .05em; }
 @keyframes twin-pulse { 50% { box-shadow: 0 0 0 9px #0cb1f211, 0 0 19px #0cb1f2; } }
 
 @media (max-width: 1050px) {

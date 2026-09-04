@@ -125,6 +125,7 @@ export default function OperatorAgent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: q, responseLanguage: languageCode }),
+        signal: AbortSignal.timeout(45_000),
       });
       const data = (await response.json()) as {
         answer?: string;
@@ -132,19 +133,31 @@ export default function OperatorAgent() {
         error?: string;
       };
       if (!response.ok || !data.answer)
-        throw new Error(data.error || "Agent unavailable");
+        throw new Error(
+          response.status === 429
+            ? "operator_model_rate_limited"
+            : data.error || "Agent unavailable",
+        );
       const answer = data.answer;
       setMessages((current) => [
         ...current,
         { role: "ai", text: answer, trace: data.toolTrace, languageCode },
       ]);
       if (fromVoice) await speak(answer, languageCode);
-    } catch {
+    } catch (error) {
+      const timedOut =
+        error instanceof DOMException && error.name === "TimeoutError";
+      const rateLimited =
+        error instanceof Error && error.message === "operator_model_rate_limited";
       setMessages((current) => [
         ...current,
         {
           role: "ai",
-          text: "The live operator language service is unavailable, so **no fabricated or cached answer has been substituted**. Please retry the request.",
+          text: rateLimited
+            ? "### Model capacity reached\n\nThe live operator model is temporarily rate-limited. The request stopped safely—please retry in **30 seconds**."
+            : timedOut
+            ? "### Request timed out\n\nThe live tool run exceeded **45 seconds** and was cancelled. No answer was fabricated. Please retry."
+            : "### Live service unavailable\n\nNo fabricated or cached answer has been substituted. Please retry the request.",
         },
       ]);
     } finally {

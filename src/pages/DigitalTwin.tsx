@@ -3,6 +3,18 @@ import { scenarios } from "../data/demoData";
 import { img } from "../utils/imagePath";
 import SecureCameraVideo from "../components/SecureCameraVideo";
 
+const twinTelemetry = [
+  { label: "2 PERSONS • ACCESS ZONE", left: "49%", top: "27%", width: "28%", height: "58%" },
+  { label: "QUEUE • 8 PERSONS", left: "18%", top: "12%", width: "74%", height: "75%" },
+  { label: "IDENTITY CHECK", left: "52%", top: "18%", width: "29%", height: "70%" },
+  { label: "CAMERA INTERACTION", left: "48%", top: "20%", width: "39%", height: "72%" },
+  { label: "CABINET INTERACTION", left: "62%", top: "20%", width: "25%", height: "72%" },
+  { label: "DENSITY THRESHOLD", left: "8%", top: "7%", width: "66%", height: "77%" },
+  { label: "ENTRY TRACK • 1", left: "24%", top: "16%", width: "39%", height: "76%" },
+  { label: "FRISKING CHECKPOINT", left: "35%", top: "16%", width: "40%", height: "74%" },
+  { label: "UNATTENDED OBJECT", left: "54%", top: "58%", width: "18%", height: "28%" },
+];
+
 export default function DigitalTwin() {
   return (
     <div className="page">
@@ -116,7 +128,8 @@ export default function DigitalTwin() {
         </aside>
       </div>
       <section className="scenario-grid">
-        {scenarios.map((s) => {
+        {scenarios.map((s, index) => {
+          const telemetry = twinTelemetry[index];
           return (
             <article className="scenario-card twin-scenario-card" key={s.id}>
               <div className="twin-pair">
@@ -124,25 +137,32 @@ export default function DigitalTwin() {
                   <span>CCTV</span>
                   <SecureCameraVideo
                     assetId={s.id}
+                    autoPlay
                     muted
                     loop
                     playsInline
                     preload="metadata"
-                    onMouseEnter={(e) => void e.currentTarget.play()}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.pause();
-                      e.currentTarget.currentTime = 0;
-                    }}
                   />
                 </div>
                 <div className="twin-pane">
                   <span>Digital twin</span>
                   <div className="twin-zone">
                     <img
-                      src={img("/images/sbi-branch-digital-twin.png")}
-                      alt="Generated digital twin zone visualization"
+                      src={img(`/images/digital-twins/${s.id.toLowerCase()}.jpg`)}
+                      alt={`3D scene twin reconstructed for ${s.name}`}
                     />
-                    <i style={{ left: s.twinX, top: s.twinY }} />
+                    <div
+                      className={`twin-detection ${s.state === "alert" ? "alert" : ""}`}
+                      style={{
+                        left: telemetry.left,
+                        top: telemetry.top,
+                        width: telemetry.width,
+                        height: telemetry.height,
+                      }}
+                    >
+                      <b>{telemetry.label}</b>
+                    </div>
+                    <div className="twin-sim-chip">SIMULATION • SYNCED</div>
                   </div>
                 </div>
               </div>
@@ -158,7 +178,7 @@ export default function DigitalTwin() {
                     {s.status}
                   </span>
                   <span style={{ fontSize: 9, color: "#5d6970" }}>
-                    Hover CCTV to preview
+                    Live CCTV • matched 3D scene
                   </span>
                 </div>
               </div>
