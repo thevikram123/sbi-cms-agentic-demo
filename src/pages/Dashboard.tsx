@@ -1,8 +1,9 @@
 import { ArrowRight, Bot, Clock3, Radio, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { branchRisk, trendData } from '../data/demoData';
+import { branchRisk, scenarios, trendData } from '../data/demoData';
 import { useIncidents } from '../context/IncidentContext';
+import SecureCameraVideo from '../components/SecureCameraVideo';
 
 export default function Dashboard() {
   const { incidents } = useIncidents();
@@ -15,6 +16,17 @@ export default function Dashboard() {
       <div className="metric red"><label>Critical now</label><strong>{active.filter(i=>i.severity==='critical').length}</strong><small>2-minute acknowledgement SLA</small></div>
       <div className="metric red"><label>SLA at risk / breached</label><strong>{breached}</strong><small>Supervisor attention required</small></div>
       <div className="metric green"><label>Integrated devices</label><strong>1,998</strong><small>99.84% reporting normally</small></div>
+    </section>
+    <section className="panel camera-wall-panel">
+      <div className="panel-head"><h2>SBI branch camera wall</h2><span>9 LIVE FEEDS • SYNTHETIC DEMO FOOTAGE</span></div>
+      <div className="camera-wall">
+        {scenarios.map((camera, index) => <article className="camera-tile" key={camera.id}>
+          <SecureCameraVideo assetId={camera.id} autoPlay muted loop playsInline preload={index < 6 ? 'auto' : 'metadata'} />
+          <div className="camera-tile-top"><span className={`camera-state ${camera.state}`}>{camera.state === 'alert' ? 'Alert' : camera.state === 'watch' ? 'Watch' : 'Live'}</span><span>{camera.id}</span></div>
+          <div className="camera-tile-copy"><strong>{camera.name}</strong><small>{camera.source} • Mumbai LHO</small></div>
+          <Link className="camera-analyze" to="/incidents/SBI-INC-00421">Open analysis →</Link>
+        </article>)}
+      </div>
     </section>
     <div className="grid-main">
       <div className="stack">

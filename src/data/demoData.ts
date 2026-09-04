@@ -27,15 +27,13 @@ export const trendData = [
 ];
 
 export const scenarios = [
-  ['UC-01', 'Strong-room threat', 'U.17', 'animate_no_drama_no_sensationalism_202609031411.mp4', 'Priority'],
-  ['UC-02', 'Abandoned object', 'Video analytics', 'Bounding_box_and_alert_appear_202609031412.mp4', 'Ready'],
-  ['UC-03', 'Camera tampering', 'Device health', 'Camera_zooms_in_label_appears_202609031425.mp4', 'Ready'],
-  ['UC-04', 'RFID access', 'ACS + CCTV', 'Door_opens_after_RFID_scan_202609031418.mp4', 'Ready'],
-  ['UC-05', 'Crowd density', 'Video analytics', 'Heatmap_appears_202609031417.mp4', 'Ready'],
-  ['UC-06', 'Perimeter intrusion', 'SAS + CCTV', 'Intruder_detected_by_camera_202609031417.mp4', 'Ready'],
-  ['UC-07', 'NVR tampering', 'Device health', 'Man_tampering_with_equipment_det…_202609031427.mp4', 'Ready'],
-  ['UC-08', 'Face concealment', 'U.17', 'Person_walking_toward_bank_teller_202609031432.mp4', 'Priority'],
-  ['UC-09', 'Frisking compliance', 'U.12', 'Security_officer_scanning_vault_…_202609031410.mp4', 'Priority'],
-  ['UC-10', 'Panic activation', 'U.17', 'She_hits_panic_button_202609031417.mp4', 'Priority'],
-  ['UC-11', 'Smoke / fire', 'Fire safety', 'Smoke_appears_alert_202609031425.mp4', 'Ready'],
-].map(([id, name, source, video, status]) => ({ id, name, source, video, status }));
+  ['CAM-MUM-01', 'Branch overview', 'Main banking hall', 'branch-overview.mp4', 'Live', 'normal', '48%', '40%'],
+  ['CAM-MUM-02', 'Customer queue', 'Service counter', 'customer-queue.mp4', 'Queue watch', 'watch', '43%', '29%'],
+  ['CAM-MUM-03', 'Biometric access', 'Restricted door', 'biometric-access.mp4', 'ACS verified', 'normal', '72%', '42%'],
+  ['CAM-MUM-04', 'Camera tampering', 'Branch perimeter', 'camera-tampering.mp4', 'Attention', 'alert', '15%', '30%'],
+  ['CAM-MUM-05', 'Server-room activity', 'IT equipment room', 'server-room-access.mp4', 'Review', 'watch', '85%', '24%'],
+  ['CAM-MUM-06', 'Crowd density', 'Banking hall', 'crowd-density.mp4', 'Threshold watch', 'watch', '57%', '22%'],
+  ['CAM-MUM-07', 'Lobby entry', 'Main entrance', 'lobby-entry.mp4', 'Motion detected', 'normal', '51%', '69%'],
+  ['CAM-MUM-08', 'Frisking compliance', 'Security checkpoint', 'frisking-compliance.mp4', 'U.12 review', 'alert', '27%', '65%'],
+  ['CAM-MUM-09', 'Unattended object', 'Customer waiting area', 'unattended-object.mp4', 'Attention', 'alert', '82%', '65%'],
+].map(([id, name, source, video, status, state, twinX, twinY]) => ({ id, name, source, video, status, state, twinX, twinY }));
