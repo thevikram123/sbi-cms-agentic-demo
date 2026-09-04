@@ -42,6 +42,11 @@
 .twin-sim-chip { position: absolute; right: 6px; bottom: 6px; padding: 3px 5px; color: #bfefff; background: #03131dcc; border: 1px solid #0CB1F2; font: 700 6px 'JetBrains Mono'; letter-spacing: .05em; }
 .twin-analyze-link { color: #007dab; font: 700 8px 'JetBrains Mono'; text-transform: uppercase; text-decoration: none; }
 .twin-analyze-link:hover { text-decoration: underline; }
+.incident-layout { transition: grid-template-columns .2s ease; }
+.incident-layout.queue-collapsed { grid-template-columns: minmax(0, 1fr) 310px; }
+.incident-layout.decision-collapsed { grid-template-columns: 260px minmax(0, 1fr); }
+.incident-layout.queue-collapsed.decision-collapsed { grid-template-columns: minmax(0, 1fr); }
+.rail-toggle[aria-expanded="false"] { background: #eaf9ff; border-color: #8ddcf9; color: #006d96; }
 @keyframes twin-pulse { 50% { box-shadow: 0 0 0 9px #0cb1f211, 0 0 19px #0cb1f2; } }
 
 @media (max-width: 1050px) {

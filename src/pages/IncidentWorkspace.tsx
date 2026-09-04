@@ -1,6 +1,10 @@
 import {
   Braces,
   CheckCircle2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Play,
   Send,
   ShieldAlert,
@@ -94,6 +98,8 @@ export default function IncidentWorkspace() {
     [incidents, incidentId],
   );
   const [confirmed, setConfirmed] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(true);
+  const [decisionOpen, setDecisionOpen] = useState(true);
   const [analysis, setAnalysis] = useState<AnalysisEnvelope | null>(null);
   const [analysisState, setAnalysisState] = useState<
     "ready" | "analyzing" | "cached" | "live" | "degraded"
@@ -249,6 +255,26 @@ export default function IncidentWorkspace() {
         </div>
         <div className="toolbar">
           <button
+            className="button rail-toggle"
+            onClick={() => setQueueOpen((open) => !open)}
+            aria-expanded={queueOpen}
+            aria-controls="incident-priority-queue"
+            title={queueOpen ? "Collapse priority queue" : "Expand priority queue"}
+          >
+            {queueOpen ? <PanelLeftClose size={14} /> : <PanelLeftOpen size={14} />}
+            Queue
+          </button>
+          <button
+            className="button rail-toggle"
+            onClick={() => setDecisionOpen((open) => !open)}
+            aria-expanded={decisionOpen}
+            aria-controls="incident-decision-rail"
+            title={decisionOpen ? "Collapse decision sidebar" : "Expand decision sidebar"}
+          >
+            {decisionOpen ? <PanelRightClose size={14} /> : <PanelRightOpen size={14} />}
+            Details
+          </button>
+          <button
             className="button"
             onClick={() => assign(selected.id, "OPR-792")}
           >
@@ -267,8 +293,8 @@ export default function IncidentWorkspace() {
           </button>
         </div>
       </div>
-      <div className="incident-layout">
-        <aside className="panel incident-menu">
+      <div className={`incident-layout ${!queueOpen ? "queue-collapsed" : ""} ${!decisionOpen ? "decision-collapsed" : ""}`}>
+        {queueOpen && <aside className="panel incident-menu" id="incident-priority-queue">
           <div className="panel-head">
             <h2>Priority queue</h2>
             <span>{incidents.length}</span>
@@ -286,7 +312,7 @@ export default function IncidentWorkspace() {
               </small>
             </div>
           ))}
-        </aside>
+        </aside>}
         <section className="stack">
           <div className="panel">
             <div className="panel-head">
@@ -462,7 +488,7 @@ export default function IncidentWorkspace() {
             )}
           </div>
         </section>
-        <aside className="stack">
+        {decisionOpen && <aside className="stack" id="incident-decision-rail">
           <section className="panel">
             <div className="panel-head">
               <h2>Operator decision</h2>
@@ -531,7 +557,7 @@ export default function IncidentWorkspace() {
               ))}
             </div>
           </section>
-        </aside>
+        </aside>}
       </div>
     </div>
   );
