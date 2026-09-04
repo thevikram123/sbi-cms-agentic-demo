@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const MISTRAL_BASE = "https://api.mistral.ai/v1";
+const GROQ_BASE = "https://api.groq.com/openai/v1";
 const SARVAM_BASE = "https://api.sarvam.ai";
 const PROMPT_VERSION = "sbi-video-v3-rfp-classification";
 const SCHEMA_VERSION = "1.2";
@@ -200,7 +200,7 @@ function cors(request: Request, env: Env) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type,Authorization,X-Confirmation-Token,X-Upload-Token",
+      "Content-Type,Authorization,X-Confirmation-Token,X-Upload-Token,X-SBI-Session",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
     "X-Content-Type-Options": "nosniff",
@@ -240,7 +240,13 @@ async function enforceRate(
   bucket = "ai",
 ) {
   const minute = Math.floor(Date.now() / 60000);
-  const subject = request.headers.get("CF-Connecting-IP") || "demo";
+  // SBI operators often sit behind one branch/LHO NAT address. Scope the demo
+  // limiter to the browser session as well, otherwise one operator can consume
+  // the allowance for everyone sharing that public IP.
+  const session = (request.headers.get("X-SBI-Session") || "anonymous")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+  const subject = `${request.headers.get("CF-Connecting-IP") || "demo"}:${session}`;
   const key = `rate:${bucket}:${subject}:${minute}`;
   const state = (await env.RATE_LIMIT.get<{ requests: number; tokens: number }>(
     key,
@@ -277,24 +283,25 @@ async function supabaseRest(env: Env, path: string) {
   return response.json<unknown>();
 }
 
-async function callMistral(
+async function callOperatorModel(
   env: Env,
   key: string,
   messages: MistralMessage[],
   withTools = true,
 ) {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const response = await fetch(`${MISTRAL_BASE}/chat/completions`, {
+  let lastRetryAfter = 2;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`${GROQ_BASE}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: env.MISTRAL_MODEL,
+        model: env.GROQ_TEXT_MODEL,
         messages,
         temperature: 0.12,
-        max_tokens: 900,
+        max_completion_tokens: 1400,
         ...(withTools
           ? { tools: TOOLS, tool_choice: "auto", parallel_tool_calls: false }
           : {}),
@@ -306,18 +313,19 @@ async function callMistral(
         choices?: Array<{ message?: MistralMessage }>;
       }>();
       const message = data.choices?.[0]?.message;
-      if (!message) throw new Error("mistral_malformed");
+      if (!message) throw new Error("operator_model_malformed");
       return message;
     }
-    if (response.status !== 429 || attempt > 0)
-      throw new Error(`mistral_${response.status}`);
-    const retrySeconds = Math.min(
-      6,
-      Math.max(1, Number(response.headers.get("retry-after")) || 2),
+    if (response.status !== 429)
+      throw new Error(`groq_${response.status}`);
+    lastRetryAfter = Math.min(
+      12,
+      Math.max(1, Number(response.headers.get("retry-after")) || 2 ** (attempt + 1)),
     );
-    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000));
+    if (attempt < 2)
+      await new Promise((resolve) => setTimeout(resolve, lastRetryAfter * 1000));
   }
-  throw new Error("mistral_429");
+  throw new Error(`groq_429:${lastRetryAfter}`);
 }
 
 async function executeTool(
@@ -498,12 +506,12 @@ async function agentQuery(request: Request, env: Env) {
       request,
       env,
       Math.ceil(message.length / 4) + 2500,
-      "mistral",
+      "operator-chat",
     ))
   )
     return json(request, env, { error: "rate_limit", retryAfter: 60 }, 429);
-  const key = await getSecret(env.MISTRAL_API_KEY);
-  if (!key) return json(request, env, { error: "mistral_not_configured" }, 503);
+  const key = await getSecret(env.GROQ_API_KEY);
+  if (!key) return json(request, env, { error: "operator_model_not_configured" }, 503);
   const responseLanguage =
     {
       "en-IN": "English",
@@ -521,7 +529,7 @@ async function agentQuery(request: Request, env: Env) {
   const trace: ToolTrace[] = [];
   try {
     for (let round = 0; round < 2; round += 1) {
-      const assistant = await callMistral(env, key, messages, true);
+      const assistant = await callOperatorModel(env, key, messages, true);
       const calls = assistant.tool_calls || [];
       if (!calls.length)
         return json(request, env, {
@@ -595,7 +603,7 @@ async function agentQuery(request: Request, env: Env) {
         });
       }
     }
-    const final = await callMistral(
+    const final = await callOperatorModel(
       env,
       key,
       [
@@ -621,11 +629,15 @@ async function agentQuery(request: Request, env: Env) {
         error: failure,
       }),
     );
-    if (failure === "mistral_429")
+    if (failure.startsWith("groq_429"))
       return json(
         request,
         env,
-        { error: "operator_model_rate_limited", retryAfter: 30 },
+        {
+          error: "operator_model_rate_limited",
+          retryAfter: Number(failure.split(":")[1] || 30),
+          source: "upstream",
+        },
         429,
       );
     return json(request, env, { error: "agent_upstream_unavailable" }, 502);
@@ -1186,7 +1198,7 @@ export default {
           time: new Date().toISOString(),
           bindings: {
             gemini: Boolean(env.GEMINI_API_KEY),
-            mistral: Boolean(env.MISTRAL_API_KEY),
+            operatorModel: Boolean(env.GROQ_API_KEY),
             sarvam: Boolean(env.SARVAM_API_KEY),
             supabase: Boolean(env.SUPABASE_SECRET_KEY),
           },

@@ -13,7 +13,7 @@
 	"vars": {
 		"ALLOWED_ORIGINS": "https://thevikram123.github.io,http://localhost:3000,http://127.0.0.1:3000",
 		"GEMINI_MODEL": "gemini-3.1-flash-lite",
-		"MISTRAL_MODEL": "mistral-small-latest",
+		"GROQ_TEXT_MODEL": "openai/gpt-oss-120b",
 		"SUPABASE_URL": "https://dxcelfokjazxkmmfoxgq.supabase.co"
 	},
 	"kv_namespaces": [
@@ -29,9 +29,9 @@
 			"secret_name": "GEMINI_API_KEY"
 		},
 		{
-			"binding": "MISTRAL_API_KEY",
+			"binding": "GROQ_API_KEY",
 			"store_id": "e0660ebafc5e4cc99716ab5d12e72d6f",
-			"secret_name": "MISTRAL_API_KEY"
+			"secret_name": "GROQ_API_KEY"
 		},
 		{
 			"binding": "SARVAM_API_KEY",

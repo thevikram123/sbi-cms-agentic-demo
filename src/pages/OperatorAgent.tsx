@@ -50,6 +50,15 @@ const languages = [
     prompt: "இந்த மாதம் எந்த கிளைகளில் ஊழியர் சோதனை மீண்டும் மீண்டும் தவறியது?",
   },
 ];
+
+function getOperatorSession() {
+  const storageKey = "sbi-cms-operator-session";
+  const existing = sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const created = crypto.randomUUID();
+  sessionStorage.setItem(storageKey, created);
+  return created;
+}
 const prompts = [
   "Why was SBI-INC-00421 escalated?",
   "Compare acknowledgement SLA by circle.",
@@ -123,7 +132,10 @@ export default function OperatorAgent() {
       if (!worker) throw new Error("Worker URL missing");
       const response = await fetch(`${worker}/api/agent/query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-SBI-Session": getOperatorSession(),
+        },
         body: JSON.stringify({ message: q, responseLanguage: languageCode }),
         signal: AbortSignal.timeout(45_000),
       });
@@ -131,13 +143,13 @@ export default function OperatorAgent() {
         answer?: string;
         toolTrace?: ToolTrace[];
         error?: string;
+        retryAfter?: number;
+        source?: string;
       };
       if (!response.ok || !data.answer)
-        throw new Error(
-          response.status === 429
-            ? "operator_model_rate_limited"
-            : data.error || "Agent unavailable",
-        );
+        throw new Error(response.status === 429
+          ? `${data.error || "rate_limit"}:${data.source || "gateway"}:${data.retryAfter || 60}`
+          : data.error || "Agent unavailable");
       const answer = data.answer;
       setMessages((current) => [
         ...current,
@@ -147,14 +159,18 @@ export default function OperatorAgent() {
     } catch (error) {
       const timedOut =
         error instanceof DOMException && error.name === "TimeoutError";
-      const rateLimited =
-        error instanceof Error && error.message === "operator_model_rate_limited";
+      const failure = error instanceof Error ? error.message : "";
+      const rateLimited = failure.startsWith("operator_model_rate_limited:");
+      const gatewayLimited = failure.startsWith("rate_limit:");
+      const retryAfter = Number(failure.split(":")[2] || 30);
       setMessages((current) => [
         ...current,
         {
           role: "ai",
           text: rateLimited
-            ? "### Model capacity reached\n\nThe live operator model is temporarily rate-limited. The request stopped safely—please retry in **30 seconds**."
+            ? `### Model capacity reached\n\nThe Mistral API rejected the request after automatic backoff. Retry in **${retryAfter} seconds**; no alternate model or fabricated answer was used.`
+            : gatewayLimited
+            ? `### Request limit reached\n\nThis browser session reached the demo gateway limit. Retry in **${retryAfter} seconds**.`
             : timedOut
             ? "### Request timed out\n\nThe live tool run exceeded **45 seconds** and was cancelled. No answer was fabricated. Please retry."
             : "### Live service unavailable\n\nNo fabricated or cached answer has been substituted. Please retry the request.",
