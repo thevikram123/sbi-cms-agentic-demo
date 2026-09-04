@@ -24,7 +24,7 @@ export default function Dashboard() {
           <SecureCameraVideo assetId={camera.id} priority={index < 3} autoPlay muted loop playsInline preload="metadata" />
           <div className="camera-tile-top"><span className={`camera-state ${camera.state}`}>{camera.state === 'alert' ? 'Alert' : camera.state === 'watch' ? 'Watch' : 'Live'}</span><span>{camera.id}</span></div>
           <div className="camera-tile-copy"><strong>{camera.name}</strong><small>{camera.source} • Mumbai LHO</small></div>
-          <Link className="camera-analyze" to="/incidents/SBI-INC-00421">Open analysis →</Link>
+          <Link className="camera-analyze" to={`/incidents/${camera.incidentId}`}>Open analysis →</Link>
         </article>)}
       </div>
     </section>

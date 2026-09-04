@@ -51,6 +51,10 @@ const incidentEvidence: Record<
   "SBI-INC-00398": { assetId: "CAM-MUM-05", durationSeconds: 10 },
   "SBI-INC-00391": { assetId: "CAM-MUM-06", durationSeconds: 10 },
   "SBI-INC-00376": { assetId: "CAM-MUM-04", durationSeconds: 10 },
+  "SBI-INC-00435": { assetId: "CAM-MUM-01", durationSeconds: 10 },
+  "SBI-INC-00434": { assetId: "CAM-MUM-02", durationSeconds: 10 },
+  "SBI-INC-00433": { assetId: "CAM-MUM-07", durationSeconds: 10 },
+  "SBI-INC-00432": { assetId: "CAM-MUM-09", durationSeconds: 10 },
 };
 
 function toBase64(buffer: ArrayBuffer) {

@@ -40,6 +40,8 @@
 .twin-detection b { position: absolute; left: -1px; top: -17px; white-space: nowrap; padding: 3px 5px; background: #007daee8; color: #fff; font: 700 6px 'JetBrains Mono'; letter-spacing: .03em; }
 .twin-detection.alert b { background: #b51f2ce8; }
 .twin-sim-chip { position: absolute; right: 6px; bottom: 6px; padding: 3px 5px; color: #bfefff; background: #03131dcc; border: 1px solid #0CB1F2; font: 700 6px 'JetBrains Mono'; letter-spacing: .05em; }
+.twin-analyze-link { color: #007dab; font: 700 8px 'JetBrains Mono'; text-transform: uppercase; text-decoration: none; }
+.twin-analyze-link:hover { text-decoration: underline; }
 @keyframes twin-pulse { 50% { box-shadow: 0 0 0 9px #0cb1f211, 0 0 19px #0cb1f2; } }
 
 @media (max-width: 1050px) {

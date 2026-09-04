@@ -1,4 +1,5 @@
 import { Cpu, Database, Server, Video } from "lucide-react";
+import { Link } from "react-router-dom";
 import { scenarios } from "../data/demoData";
 import { img } from "../utils/imagePath";
 import SecureCameraVideo from "../components/SecureCameraVideo";
@@ -177,9 +178,9 @@ export default function DigitalTwin() {
                   >
                     {s.status}
                   </span>
-                  <span style={{ fontSize: 9, color: "#5d6970" }}>
-                    Live CCTV • matched 3D scene
-                  </span>
+                  <Link className="twin-analyze-link" to={`/incidents/${s.incidentId}`}>
+                    Analyze footage →
+                  </Link>
                 </div>
               </div>
             </article>
