@@ -347,7 +347,7 @@ async function executeTool(
           {
             time: "14:38:31 IST",
             event: "Signal detected",
-            actor: "Gemini vision",
+            actor: "Video analysis service",
             detail: "Person approaching teller and staff huddle observed.",
           },
           {
@@ -384,7 +384,7 @@ async function executeTool(
         { time: "14:38:31 IST", label: "person approaching teller" },
         { time: "14:38:34 IST", label: "panic-zone correlation" },
       ],
-      access: "Short-lived signed URL; media is never sent to Mistral.",
+      access: "Short-lived signed URL; media is never sent to the operator language model.",
     };
   if (name === "get_operational_kpis")
     return {
@@ -535,7 +535,7 @@ async function agentQuery(request: Request, env: Env) {
           "compare_locations",
           "search_sops",
         ].includes(call.function.name)
-          ? "Supabase live reporting"
+          ? "Live operational reporting"
           : [
                 "search_incidents",
                 "get_incident_timeline",
