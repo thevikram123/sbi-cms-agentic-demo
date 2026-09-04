@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const MISTRAL_BASE = "https://api.mistral.ai/v1";
 const SARVAM_BASE = "https://api.sarvam.ai";
-const PROMPT_VERSION = "sbi-video-v2";
-const SCHEMA_VERSION = "1.1";
+const PROMPT_VERSION = "sbi-video-v3-rfp-classification";
+const SCHEMA_VERSION = "1.2";
 const MAX_JSON_BYTES = 12_000_000;
 const MAX_AUDIO_BYTES = 5_000_000;
 const PRIMARY_EVIDENCE = {
@@ -26,6 +26,24 @@ const CAMERA_EVIDENCE = [
   ["CAM-MUM-09", "sbi-cctv/unattended-object.mp4"],
 ].map(([assetId, path]) => ({ assetId, path, mimeType: "video/mp4" }));
 const EVIDENCE = [PRIMARY_EVIDENCE, ...CAMERA_EVIDENCE];
+const SBI_USE_CASES: Record<string, string> = {
+  "U.1": "Panic Button Activation",
+  "U.2": "Enclosure Tampering Alert",
+  "U.3": "Perimeter Breach Detection",
+  "U.4": "Fire/Smoke Detection Alert",
+  "U.5": "Unauthorized Room Access",
+  "U.6": "Staff Accessing Strong Room Outside Working Hours",
+  "U.7a": "Joint Custodian Verification",
+  "U.7b": "Access Controlled Doors Left Open",
+  "U.8": "Ambience Quality",
+  "U.9": "Helmet / Face Mask Detection",
+  "U.10": "Abandoned Object Detection",
+  "U.11": "Camera Tampering Detection",
+  "U.12": "Frisking Violation / Compliance",
+  "U.16": "Crowd Monitoring Detection",
+  "U.17": "Panic & Threat Detection",
+  UNCLASSIFIED: "Unclassified Video Event",
+};
 
 const INCIDENTS = [
   {
@@ -1019,6 +1037,11 @@ async function analyzeVideo(request: Request, env: Env) {
   const schema = {
     type: "OBJECT",
     properties: {
+      use_case_id: {
+        type: "STRING",
+        enum: Object.keys(SBI_USE_CASES),
+      },
+      use_case_name: { type: "STRING" },
       summary: { type: "STRING" },
       what_happened: { type: "STRING" },
       people_count: { type: "INTEGER" },
@@ -1050,6 +1073,8 @@ async function analyzeVideo(request: Request, env: Env) {
       confidence: { type: "NUMBER" },
     },
     required: [
+      "use_case_id",
+      "use_case_name",
       "summary",
       "what_happened",
       "people_count",
@@ -1070,7 +1095,7 @@ async function analyzeVideo(request: Request, env: Env) {
         role: "user",
         parts: [
           {
-            text: "Analyze this SBI bank security video conservatively. Report only visible facts. Count unique visible people and return that integer as people_count. State the visible event concisely in what_happened. Distinguish observed from not observed. Focus on U.12 frisking compliance and U.17 panic/threat indicators.",
+            text: `Analyze this SBI bank security video conservatively. Report only visible facts. Count unique visible people and return that integer as people_count. State the visible event concisely in what_happened. Distinguish observed from not observed. Only after inspecting the footage, select exactly one matching SBI RFP use case from this controlled catalogue: ${Object.entries(SBI_USE_CASES).map(([id, name]) => `${id} — ${name}`).join("; ")}. Visible captions or alert overlays may support the classification, but verify them against visible activity. Use UNCLASSIFIED when evidence is insufficient. Return the selected identifier in use_case_id; the service will canonicalize its official name.`,
           },
           {
             inlineData: {
@@ -1126,7 +1151,14 @@ async function analyzeVideo(request: Request, env: Env) {
     return json(request, env, { error: "malformed_model_output" }, 502);
   let result: unknown;
   try {
-    result = JSON.parse(output);
+    const parsed = JSON.parse(output) as Record<string, unknown>;
+    const proposedId = String(parsed.use_case_id || "UNCLASSIFIED");
+    const useCaseId = SBI_USE_CASES[proposedId]
+      ? proposedId
+      : "UNCLASSIFIED";
+    parsed.use_case_id = useCaseId;
+    parsed.use_case_name = SBI_USE_CASES[useCaseId];
+    result = parsed;
   } catch {
     return json(request, env, { error: "malformed_model_output" }, 502);
   }

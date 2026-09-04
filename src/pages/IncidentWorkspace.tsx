@@ -14,6 +14,8 @@ import type { IncidentStatus } from "../types";
 type TimelineEvent = { second: number; event: string };
 type Keyframe = { second: number; caption: string };
 type VideoAnalysis = {
+  use_case_id: string;
+  use_case_name: string;
   summary: string;
   what_happened?: string;
   people_count?: number;
@@ -26,6 +28,24 @@ type VideoAnalysis = {
   threat_indicators?: string[];
   not_observed?: string[];
   confidence: number;
+};
+
+const sopByUseCase: Record<string, string> = {
+  "U.1": "SOP-PANIC-BUTTON-01",
+  "U.2": "SOP-ENCLOSURE-TAMPER-01",
+  "U.3": "SOP-PERIMETER-01",
+  "U.4": "SOP-FIRE-01",
+  "U.5": "SOP-ACS-UNAUTH-01",
+  "U.6": "SOP-ACS-AFTER-HOURS-01",
+  "U.7a": "SOP-JOINT-CUSTODIAN-01",
+  "U.7b": "SOP-DOOR-OPEN-01",
+  "U.8": "SOP-AMBIENCE-01",
+  "U.9": "SOP-FACE-CONCEAL-01",
+  "U.10": "SOP-ABANDONED-OBJECT-01",
+  "U.11": "SOP-CAMERA-TAMPER-01",
+  "U.12": "SOP-U12-FRISK-02",
+  "U.16": "SOP-CROWD-01",
+  "U.17": "SOP-U17-PANIC-01",
 };
 type AnalysisEnvelope = {
   cached: boolean;
@@ -85,6 +105,10 @@ export default function IncidentWorkspace() {
     import.meta.env.DEV ? "ready" : "loading",
   );
   const evidence = incidentEvidence[selected.id];
+  const result = analysis?.result;
+  const currentSop = result
+    ? sopByUseCase[result.use_case_id] || "SOP-REVIEW-REQUIRED"
+    : null;
 
   const advance = () => {
     const state = next[selected.status];
@@ -92,7 +116,7 @@ export default function IncidentWorkspace() {
       updateStatus(
         selected.id,
         state,
-        `Operator confirmed ${state.replace("_", " ")} after reviewing linked evidence and ${selected.sop}.`,
+        `Operator confirmed ${state.replace("_", " ")} after reviewing linked evidence and ${currentSop}.`,
       );
       setConfirmed(false);
     }
@@ -101,6 +125,7 @@ export default function IncidentWorkspace() {
   useEffect(() => {
     setAnalysis(null);
     setAnalysisState("ready");
+    setConfirmed(false);
     setVideoUrl("");
     setVideoState("loading");
     if (!evidence) {
@@ -193,10 +218,11 @@ export default function IncidentWorkspace() {
     }
   };
 
-  const result = analysis?.result;
   const structuredOutput = result
     ? {
         asset_id: evidence.assetId,
+        use_case_id: result.use_case_id,
+        use_case_name: result.use_case_name,
         people_count: result.people_count ?? result.people?.length ?? 0,
         what_happened: result.what_happened ?? result.summary,
         people: result.people ?? [],
@@ -231,7 +257,7 @@ export default function IncidentWorkspace() {
           </button>
           <button
             className="button dark"
-            disabled={!confirmed || !next[selected.status]}
+            disabled={!result || !confirmed || !next[selected.status]}
             onClick={advance}
           >
             <CheckCircle2 size={14} />
@@ -253,10 +279,10 @@ export default function IncidentWorkspace() {
               className={`incident-mini ${item.id === selected.id ? "active" : ""}`}
               onClick={() => navigate(`/incidents/${item.id}`)}
             >
-              <span className={`badge ${item.severity}`}>{item.severity}</span>
-              <strong style={{ marginTop: 7 }}>{item.title}</strong>
+              <span className="badge">unreviewed</span>
+              <strong style={{ marginTop: 7 }}>Video evidence awaiting review</strong>
               <small>
-                {item.id} • {item.ageMinutes} min
+                {item.id} • {item.camera} • {item.ageMinutes} min
               </small>
             </div>
           ))}
@@ -329,7 +355,9 @@ export default function IncidentWorkspace() {
               <div>
                 <label>Classification</label>
                 <strong>
-                  {selected.useCase} • {selected.severity}
+                  {result
+                    ? `${result.use_case_id} • ${result.use_case_name}`
+                    : "Awaiting video analysis"}
                 </strong>
               </div>
               <div>
@@ -347,31 +375,41 @@ export default function IncidentWorkspace() {
             </div>
             <div className="panel-body">
               <div className="callout">
-                <strong>{selected.title}</strong>
-                <p>
-                  {result?.what_happened || result?.summary || selected.summary}
-                </p>
-                {!result && (
-                  <p>
-                    This is the correlated alert context, not a video-model
-                    result. Run the video model to validate the footage.
-                  </p>
+                {result ? (
+                  <>
+                    <strong>
+                      {result.use_case_id} • {result.use_case_name}
+                    </strong>
+                    <p>{result.what_happened || result.summary}</p>
+                  </>
+                ) : (
+                  <>
+                    <strong>Unreviewed CCTV event</strong>
+                    <p>
+                      No event type or activity has been inferred. Run the video
+                      model to inspect the linked footage.
+                    </p>
+                  </>
                 )}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 6,
-                  flexWrap: "wrap",
-                  marginTop: 12,
-                }}
-              >
-                {selected.signals.map((signal) => (
-                  <span className="badge" key={signal}>
-                    {signal}
-                  </span>
-                ))}
-              </div>
+              {result && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    flexWrap: "wrap",
+                    marginTop: 12,
+                  }}
+                >
+                  {[...(result.threat_indicators ?? []), ...(result.objects ?? [])]
+                    .slice(0, 6)
+                    .map((observation) => (
+                      <span className="badge" key={observation}>
+                        {observation}
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="panel structured-panel">
@@ -449,6 +487,7 @@ export default function IncidentWorkspace() {
                 <input
                   type="checkbox"
                   checked={confirmed}
+                  disabled={!result}
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />{" "}
                 I confirm the evidence has been reviewed and approve this
@@ -458,16 +497,22 @@ export default function IncidentWorkspace() {
           </section>
           <section className="panel">
             <div className="panel-head">
-              <h2>{selected.sop}</h2>
+              <h2>{currentSop || "SOP pending classification"}</h2>
               <Send size={14} />
             </div>
             <div className="panel-body">
-              <ol style={{ fontSize: 10, lineHeight: 1.8, paddingLeft: 17 }}>
-                <li>Acknowledge within {selected.slaMinutes} minutes.</li>
-                <li>Launch associated live camera and verify scene.</li>
-                <li>Notify branch authority and LHO supervisor.</li>
-                <li>Preserve evidence and record operator disposition.</li>
-              </ol>
+              {result ? (
+                <ol style={{ fontSize: 10, lineHeight: 1.8, paddingLeft: 17 }}>
+                  <li>Acknowledge within {selected.slaMinutes} minutes.</li>
+                  <li>Launch associated live camera and verify scene.</li>
+                  <li>Notify branch authority and LHO supervisor.</li>
+                  <li>Preserve evidence and record operator disposition.</li>
+                </ol>
+              ) : (
+                <p style={{ fontSize: 10, lineHeight: 1.6, color: "#5d6970" }}>
+                  Run video analysis before selecting a use-case-specific SOP.
+                </p>
+              )}
             </div>
           </section>
           <section className="panel">
